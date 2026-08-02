@@ -3,6 +3,7 @@ INCLUDES= -I./
 
 all: clean ${OBJECTS}
 	gcc main.c ${INCLUDE} ${OBJECTS} -g -o ./main
+	./main
 
 ./build/compiler.o: ./compiler.c
 	gcc ./compiler.c ${INCLUDES} -o ./build/compiler.o -g -c

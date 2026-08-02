@@ -94,7 +94,25 @@ static bool is_valid_op(char *op)
            S_COMP(op, "||") ||
            S_COMP(op, "&&") ||
            S_COMP(op, "->") ||
-           S_COMP(op, "...");
+           S_COMP(op, "...") ||
+           S_COMP(op, "+") ||
+           S_COMP(op, "-") ||
+           S_COMP(op, "/") ||
+           S_COMP(op, "*") ||
+           S_COMP(op, "<") ||
+           S_COMP(op, ">") ||
+           S_COMP(op, "^") ||
+           S_COMP(op, "%") ||
+           S_COMP(op, "!") ||
+           S_COMP(op, "=") ||
+           S_COMP(op, "~") ||
+           S_COMP(op, "|") ||
+           S_COMP(op, "&") ||
+           S_COMP(op, "(") ||
+           S_COMP(op, "[") ||
+           S_COMP(op, ".") ||
+           S_COMP(op, ",") ||
+           S_COMP(op, "?");
 }
 
 struct token *token_create(struct token *_token)
@@ -170,15 +188,16 @@ const char *read_operator()
     struct buffer *buffer = buffer_create();
     char op = nextc();
     buffer_write(buffer, op);
+    char op1 = 0x00, op2 = 0x00;
     if (!operator_treated_as_one(op))
     {
-        char op1 = peekc();
+        op1 = peekc();
         if (is_single_operator(op1))
         {
             buffer_write(buffer, op1);
             nextc();
             single_operator = false;
-            char op2 = peekc();
+            op2 = peekc();
             if (op == '.' && op1 == '.' && op2 == '.')
             {
                 buffer_write(buffer, '.');
@@ -187,12 +206,24 @@ const char *read_operator()
         }
     }
     buffer_write(buffer, 0x00);
-    char* operator=buffer_ptr(buffer);
-    if(single_operator&&!is_single_operator(*operator)){
-        compiler_error(lex_process->compiler,"invalid operation %s",operator);
+    char *operator = buffer_ptr(buffer);
+    if (single_operator && !is_single_operator(*operator))
+    {
+        compiler_error(lex_process->compiler, "invalid operation %s", operator);
     }
-    if(!single_operator&&!is_valid_op(operator)){
-        compiler_error(lex_process->compiler,"invalid operation %s",operator);
+    if (!single_operator && !is_valid_op(operator))
+    {
+        if (op2)
+        {
+            pushc(op2);
+            operator[2] = 0x00;
+        }
+        if (!is_valid_op(operator))
+            if (op1)
+            {
+                pushc(op1);
+                operator[1] = 0x00;
+            }
     }
     printf("token_buffer:%s\n", buffer_ptr(buffer));
     return buffer_ptr(buffer);
@@ -272,7 +303,7 @@ struct token *read_next_token()
     case EOF:
         break;
     default:
-        compiler_error(lex_process->compiler, "unidentifiable token %c",c);
+        compiler_error(lex_process->compiler, "unidentifiable token %c", c);
         break;
     }
     return token;
