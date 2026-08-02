@@ -48,7 +48,6 @@ static bool operator_treated_as_one(char op)
 {
     return op == '(' ||
            op == '[' ||
-           op == '.' ||
            op == '?' ||
            op == '*' ||
            op == ',';
