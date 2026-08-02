@@ -1,4 +1,4 @@
-OBJECTS=./build/compile_process.o ./build/compiler.o ./build/helpers/vector.o ./build/helpers/buffer.o ./build/lex_process.o ./build/lexer.o
+OBJECTS=./build/compile_process.o ./build/compiler.o ./build/helpers/vector.o ./build/helpers/buffer.o ./build/lex_process.o ./build/lexer.o ./build/token.o
 INCLUDES= -I./
 
 all: clean ${OBJECTS}
@@ -16,6 +16,9 @@ all: clean ${OBJECTS}
 
 ./build/lexer.o: ./lexer.c
 	gcc ./lexer.c ${INCLUDES} -o ./build/lexer.o -g -c
+
+./build/token.o: ./token.c
+	gcc ./token.c ${INCLUDES} -o ./build/token.o -g -c
 
 ./build/helpers/vector.o: ./helpers/vector.c
 	gcc ./helpers/vector.c ${INCLUDES} -o ./build/helpers/vector.o -g -c

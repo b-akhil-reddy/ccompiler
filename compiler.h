@@ -2,6 +2,10 @@
 #define CCOMPILER_H
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
+
+#define S_COMP(s1, s2) \
+    (s1 && s2 && strcmp(s1, s2) == 0)
 
 #define ISNUMERIC \
     case '0':     \
@@ -137,5 +141,7 @@ void free_lex_process(struct lex_process *lprocess);
 void *lex_process_private(struct lex_process *lprocess);
 struct vector *lex_process_tokens(struct lex_process *lprocess);
 int lex(struct lex_process *lprocess);
+
+bool token_is_keyword(struct token* token,char* keyword);
 
 #endif

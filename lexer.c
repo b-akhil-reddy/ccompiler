@@ -10,8 +10,6 @@
         buffer_write(buffer, c);        \
         nextc();                        \
     }
-#define S_COMP(s1, s2) \
-    (s1 && s2 && strcmp(s1, s2) == 0)
 
 static struct lex_process *lex_process;
 static struct token tmp_token;
@@ -149,15 +147,15 @@ const char *read_number_str()
     return buffer_ptr(buffer);
 }
 
-const char *read_str()
+const char *read_str(char endlim)
 {
     const char *num = NULL;
     struct buffer *buffer = buffer_create();
     char c = nextc();
-    LEX_GETC_IF(buffer, c, c != EOF && c != '\"');
+    LEX_GETC_IF(buffer, c, c != EOF && c != endlim);
     if (peekc() == EOF)
     {
-        compiler_error(lex_process->compiler, "expected a \" but reached end of file");
+        compiler_error(lex_process->compiler, "expected a %c but reached end of file", endlim);
     }
     buffer_write(buffer, 0x00);
     nextc();
@@ -245,9 +243,9 @@ struct token *make_token_number()
     return make_token_number_for_value(read_number());
 }
 
-struct token *make_token_string()
+struct token *make_token_string(char endlim)
 {
-    return token_create(&(struct token){.type = TOKEN_TYPE_STRING, .sval = read_str()});
+    return token_create(&(struct token){.type = TOKEN_TYPE_STRING, .sval = read_str(endlim)});
 }
 
 struct token *make_token_char()
@@ -255,8 +253,34 @@ struct token *make_token_char()
     return token_create(&(struct token){.type = TOKEN_TYPE_CHAR, .cval = read_char()});
 }
 
+static void lex_new_expression(){
+    lex_process->current_expression_count++;
+    if(lex_process->current_expression_count==1){
+        lex_process->parenthesis_buffer = buffer_create();
+    }
+}
+
+bool lex_is_in_expression(){
+    return lex_process->current_expression_count > 0;
+}
+
 struct token *make_token_operator()
 {
+    char op = peekc();
+    if (op == '<')
+    {
+        struct token *last_token = lexer_last_token();
+        if (token_is_keyword(last_token, "include"))
+        {
+            return make_token_string('>');
+        }
+    }
+    else if (op == '(')
+    {
+        lex_new_expression();
+    }
+    // Closing of expression will be handled in symbols as ')' is part of symbols
+
     return token_create(&(struct token){.type = TOKEN_TYPE_OPERATOR, .sval = read_operator()});
 }
 
@@ -291,7 +315,7 @@ struct token *read_next_token()
         token = make_token_operator();
         break;
     case '\"':
-        token = make_token_string();
+        token = make_token_string('\"');
         break;
     case '\'':
         token = make_token_char();
