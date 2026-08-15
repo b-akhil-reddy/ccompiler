@@ -366,6 +366,40 @@ struct token *make_token_identifier_or_keyword()
     return token_create(&(struct token){.type = TOKEN_TYPE_IDENTIFIER, .sval = buffer_ptr(buffer)});
 }
 
+struct token *make_token_singleline_comment()
+{
+    struct buffer *buffer = buffer_create();
+    char c = peekc();
+    LEX_GETC_IF(buffer, c, c != '\n' && c != EOF);
+    printf("token_buffer:%s\n", buffer_ptr(buffer));
+    return token_create(&(struct token){.type = TOKEN_TYPE_COMMENT, .sval = buffer_ptr(buffer)});
+}
+
+struct token *make_token_multiline_comment()
+{
+    struct buffer *buffer = buffer_create();
+    char c = peekc();
+    while (1)
+    {
+        LEX_GETC_IF(buffer, c, c != '*' && c != EOF);
+        if (c == EOF)
+        {
+            compiler_error(lex_process->compiler, "multiline comment not ended");
+        }
+        else if (c == '*')
+        {
+            nextc();
+            if (peekc() == '/')
+            {
+                nextc();
+                break;
+            }
+        }
+    }
+    printf("token_buffer:%s\n", buffer_ptr(buffer));
+    return token_create(&(struct token){.type = TOKEN_TYPE_COMMENT, .sval = buffer_ptr(buffer)});
+}
+
 struct token *read_next_token()
 {
     struct token *token = NULL;
@@ -375,6 +409,20 @@ struct token *read_next_token()
     int cline = lex_process->compiler->pos.line;
     char c = nextc();
     char cnext = nextc();
+    if (c == '/' && cnext == '/')
+    {
+        return make_token_singleline_comment();
+    }
+    else if (c == '/' && cnext == '*')
+    {
+        return make_token_multiline_comment();
+    }
+    else if (c == '/')
+    {
+        pushc(cnext);
+        pushc(c);
+        return make_token_operator();
+    }
     pushc(cnext);
     pushc(c);
     lex_process->pos.col = col;
