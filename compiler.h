@@ -37,6 +37,16 @@
     case '.':    \
     case ',':    \
     case '?'
+
+#define ISSYMBOL \
+    case '{':    \
+    case '}':    \
+    case ':':    \
+    case ';':    \
+    case '#':    \
+    case '\\':    \
+    case ')':    \
+    case ']'
     
 struct pos
 {

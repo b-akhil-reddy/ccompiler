@@ -14,6 +14,8 @@
 static struct lex_process *lex_process;
 static struct token tmp_token;
 struct token *read_next_token();
+static void lex_finish_expression();
+bool lex_is_in_expression();
 
 static struct pos lex_file_position()
 {
@@ -253,10 +255,25 @@ struct token *make_token_char()
     return token_create(&(struct token){.type = TOKEN_TYPE_CHAR, .cval = read_char()});
 }
 
+struct token *make_token_symbol()
+{
+    char c=nextc();
+    if (c==')'){
+        lex_finish_expression();
+    }
+    return token_create(&(struct token){.type = TOKEN_TYPE_SYMBOL, .cval = c});
+}
+
 static void lex_new_expression(){
     lex_process->current_expression_count++;
     if(lex_process->current_expression_count==1){
         lex_process->parenthesis_buffer = buffer_create();
+    }
+}
+static void lex_finish_expression(){
+    lex_process->current_expression_count--;
+    if(lex_process->current_expression_count<0){
+        compiler_error(lex_process->compiler,"expression closed before opening");
     }
 }
 
@@ -313,6 +330,9 @@ struct token *read_next_token()
             break;
         }
         token = make_token_operator();
+        break;
+    ISSYMBOL:
+        token = make_token_symbol();
         break;
     case '\"':
         token = make_token_string('\"');
