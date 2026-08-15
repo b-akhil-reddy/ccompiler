@@ -255,6 +255,11 @@ struct token *make_token_char()
     return token_create(&(struct token){.type = TOKEN_TYPE_CHAR, .cval = read_char()});
 }
 
+struct token *make_token_newline()
+{
+    return token_create(&(struct token){.type = TOKEN_TYPE_NEWLINE, .cval = nextc()});
+}
+
 struct token *make_token_symbol()
 {
     char c = nextc();
@@ -401,9 +406,10 @@ struct token *read_next_token()
         token = make_token_char();
         break;
     case ' ':
-    case '\n':
     case '\t':
         token = handle_white_space();
+    case '\n':
+        token = make_token_newline();
     case EOF:
         break;
     default:
