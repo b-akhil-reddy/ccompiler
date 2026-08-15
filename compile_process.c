@@ -29,7 +29,6 @@ struct compile_process *create_compile_process(const char *filename, const char 
     return process;
 }
 
-static int tester = 0;
 char compile_process_next_char(struct lex_process *lex_process)
 {
     struct compile_process *compiler = lex_process->compiler;
@@ -44,9 +43,6 @@ char compile_process_next_char(struct lex_process *lex_process)
         compiler->pos.col += 1;
     }
     printf("compiler_process:%c:%d::%d\n", c, compiler->pos.line, compiler->pos.col);
-    tester += 1;
-    // if(tester==6)
-    // exit(1);
     return c;
 }
 

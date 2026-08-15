@@ -12,7 +12,6 @@ struct lex_process *create_lex_process(struct compile_process *cprocess, struct 
     lprocess->current_expression_count = 0;
     lprocess->private = private;
     lprocess->parenthesis_buffer = NULL;
-    lprocess->private = NULL;
     return lprocess;
 }
 
