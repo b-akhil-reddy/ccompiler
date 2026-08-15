@@ -4,6 +4,15 @@
 #include <string.h>
 #include <stdbool.h>
 #include <string.h>
+
+#define LEX_GETC_IF_WITH_CHECK(buffer, c, exp, check, value) \
+    for (c = peekc(); exp; c = peekc())                      \
+    {                                                        \
+        buffer_write(buffer, c);                             \
+        check = check || c == value;                         \
+        nextc();                                             \
+    }
+
 #define LEX_GETC_IF(buffer, c, exp)     \
     for (c = peekc(); exp; c = peekc()) \
     {                                   \
@@ -141,12 +150,12 @@ static struct token *handle_white_space()
     return read_next_token();
 }
 
-const char *read_number_str()
+const char *read_number_str(bool *isfloat)
 {
     const char *num = NULL;
     struct buffer *buffer = buffer_create();
     char c = peekc();
-    LEX_GETC_IF(buffer, c, (c >= '0' && c <= '9') || c == '.');
+    LEX_GETC_IF_WITH_CHECK(buffer, c, (c >= '0' && c <= '9') || c == '.', (*isfloat), '.');
     buffer_write(buffer, 0x00);
     printf("token_buffer:%s\n", buffer_ptr(buffer));
     return buffer_ptr(buffer);
@@ -300,20 +309,51 @@ const char *read_operator()
     return buffer_ptr(buffer);
 }
 
-double read_number()
+struct token *make_token_number_for_int(unsigned long number)
 {
-    const char *s = read_number_str();
-    return atof(s);
+    return token_create(&(struct token){.type = TOKEN_TYPE_NUMBER, .llnum = number});
 }
 
-struct token *make_token_number_for_value(double number)
+struct token *make_token_number_for_float(double number)
 {
     return token_create(&(struct token){.type = TOKEN_TYPE_NUMBER, .ffnum = number});
 }
 
+struct token *make_token_hex()
+{
+    struct buffer *buffer = buffer_create();
+    char c = 0;
+    bool isfloat = false;
+    LEX_GETC_IF(buffer, c, ISHEXC(c));
+    buffer_write(buffer, 0x00);
+    unsigned long number = strtol(buffer_ptr(buffer), 0, 16);
+    return make_token_number_for_int(number);
+}
+
+struct token *make_token_binary()
+{
+    struct buffer *buffer = buffer_create();
+    char c = 0;
+    LEX_GETC_IF(buffer, c, c == '0' || c == '1');
+    buffer_write(buffer, 0x00);
+    unsigned long number = strtol(buffer_ptr(buffer), 0, 2);
+    return make_token_number_for_int(number);
+}
+
 struct token *make_token_number()
 {
-    return make_token_number_for_value(read_number());
+    bool isfloat = false;
+    const char *s = read_number_str(&isfloat);
+    if (isfloat)
+    {
+        double num = atof(s);
+        return make_token_number_for_float(num);
+    }
+    else
+    {
+        int num = atoi(s);
+        return make_token_number_for_int(num);
+    }
 }
 
 struct token *make_token_string(char endlim)
@@ -481,7 +521,15 @@ struct token *read_next_token()
     int cline = lex_process->compiler->pos.line;
     char c = nextc();
     char cnext = nextc();
-    if (c == '/' && cnext == '/')
+    if (c == '0' && cnext == 'x')
+    {
+        return make_token_hex();
+    }
+    else if (c == '0' && cnext == 'b')
+    {
+        return make_token_binary();
+    }
+    else if (c == '/' && cnext == '/')
     {
         return make_token_singleline_comment();
     }

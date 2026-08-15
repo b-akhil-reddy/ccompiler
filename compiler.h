@@ -20,22 +20,22 @@
     case '9'
 
 #define ISOPERATOR \
-    case '+':    \
-    case '-':    \
-    case '*':    \
-    case '<':    \
-    case '>':    \
-    case '^':    \
-    case '%':    \
-    case '!':    \
-    case '=':    \
-    case '~':    \
-    case '|':    \
-    case '&':    \
-    case '(':    \
-    case '[':    \
-    case '.':    \
-    case ',':    \
+    case '+':      \
+    case '-':      \
+    case '*':      \
+    case '<':      \
+    case '>':      \
+    case '^':      \
+    case '%':      \
+    case '!':      \
+    case '=':      \
+    case '~':      \
+    case '|':      \
+    case '&':      \
+    case '(':      \
+    case '[':      \
+    case '.':      \
+    case ',':      \
     case '?'
 
 #define ISSYMBOL \
@@ -44,11 +44,13 @@
     case ':':    \
     case ';':    \
     case '#':    \
-    case '\\':    \
+    case '\\':   \
     case ')':    \
     case ']'
 
 #define ISALPHA(c) (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+
+#define ISHEXC(c) (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')
 
 struct pos
 {
@@ -154,6 +156,6 @@ void *lex_process_private(struct lex_process *lprocess);
 struct vector *lex_process_tokens(struct lex_process *lprocess);
 int lex(struct lex_process *lprocess);
 
-bool token_is_keyword(struct token* token,char* keyword);
+bool token_is_keyword(struct token *token, char *keyword);
 
 #endif
