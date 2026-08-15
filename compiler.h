@@ -47,7 +47,9 @@
     case '\\':    \
     case ')':    \
     case ']'
-    
+
+#define ISALPHA(c) (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+
 struct pos
 {
     int line;

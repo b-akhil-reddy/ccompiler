@@ -43,3 +43,7 @@
 ++*
 --*
 (10-11)
+(10-abc)
+(abc-def)
+int abc
+struct def

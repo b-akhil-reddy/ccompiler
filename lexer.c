@@ -257,28 +257,73 @@ struct token *make_token_char()
 
 struct token *make_token_symbol()
 {
-    char c=nextc();
-    if (c==')'){
+    char c = nextc();
+    if (c == ')')
+    {
         lex_finish_expression();
     }
     return token_create(&(struct token){.type = TOKEN_TYPE_SYMBOL, .cval = c});
 }
 
-static void lex_new_expression(){
+static void lex_new_expression()
+{
     lex_process->current_expression_count++;
-    if(lex_process->current_expression_count==1){
+    if (lex_process->current_expression_count == 1)
+    {
         lex_process->parenthesis_buffer = buffer_create();
     }
 }
-static void lex_finish_expression(){
+
+static void lex_finish_expression()
+{
     lex_process->current_expression_count--;
-    if(lex_process->current_expression_count<0){
-        compiler_error(lex_process->compiler,"expression closed before opening");
+    if (lex_process->current_expression_count < 0)
+    {
+        compiler_error(lex_process->compiler, "expression closed before opening");
     }
 }
 
-bool lex_is_in_expression(){
+bool lex_is_in_expression()
+{
     return lex_process->current_expression_count > 0;
+}
+
+bool is_keyword(char *identifier)
+{
+    return S_COMP(identifier, "char") ||
+           S_COMP(identifier, "short") ||
+           S_COMP(identifier, "int") ||
+           S_COMP(identifier, "long") ||
+           S_COMP(identifier, "signed") ||
+           S_COMP(identifier, "unsigned") ||
+           S_COMP(identifier, "float") ||
+           S_COMP(identifier, "double") ||
+           S_COMP(identifier, "void") ||
+           S_COMP(identifier, "struct") ||
+           S_COMP(identifier, "union") ||
+           S_COMP(identifier, "static") ||
+           S_COMP(identifier, "__ignore_typecheck") ||
+           S_COMP(identifier, "return") ||
+           S_COMP(identifier, "include") ||
+           S_COMP(identifier, "sizeof") ||
+           S_COMP(identifier, "if") ||
+           S_COMP(identifier, "else") ||
+           S_COMP(identifier, "while") ||
+           S_COMP(identifier, "for") ||
+           S_COMP(identifier, "do") ||
+           S_COMP(identifier, "break") ||
+           S_COMP(identifier, "continue") ||
+           S_COMP(identifier, "switch") ||
+           S_COMP(identifier, "case") ||
+           S_COMP(identifier, "default") ||
+           S_COMP(identifier, "goto") ||
+           S_COMP(identifier, "typedef") ||
+           S_COMP(identifier, "const") ||
+           S_COMP(identifier, "extern") ||
+           S_COMP(identifier, "restrict") ||
+           S_COMP(identifier, "enum") ||
+           S_COMP(identifier, "register") ||
+           S_COMP(identifier, "atomic");
 }
 
 struct token *make_token_operator()
@@ -299,6 +344,21 @@ struct token *make_token_operator()
     // Closing of expression will be handled in symbols as ')' is part of symbols
 
     return token_create(&(struct token){.type = TOKEN_TYPE_OPERATOR, .sval = read_operator()});
+}
+
+struct token *make_token_identifier_or_keyword()
+{
+    const char *num = NULL;
+    struct buffer *buffer = buffer_create();
+    char c = peekc();
+    LEX_GETC_IF(buffer, c, (ISALPHA(c) || (c >= '0' && c <= '9') || (c == '_')) && c != EOF);
+    buffer_write(buffer, 0x00);
+    printf("token_buffer:%s\n", buffer_ptr(buffer));
+    if (is_keyword(buffer_ptr(buffer)))
+    {
+        return token_create(&(struct token){.type = TOKEN_TYPE_KEYWORD, .sval = buffer_ptr(buffer)});
+    }
+    return token_create(&(struct token){.type = TOKEN_TYPE_IDENTIFIER, .sval = buffer_ptr(buffer)});
 }
 
 struct token *read_next_token()
@@ -347,7 +407,14 @@ struct token *read_next_token()
     case EOF:
         break;
     default:
-        compiler_error(lex_process->compiler, "unidentifiable token %c", c);
+        if ((ISALPHA(c) || (c == '_')))
+        {
+            token = make_token_identifier_or_keyword();
+        }
+        if (!token)
+        {
+            compiler_error(lex_process->compiler, "unidentifiable token at %c", c);
+        }
         break;
     }
     return token;
