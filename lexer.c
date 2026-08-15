@@ -25,11 +25,14 @@ static struct pos lex_file_position()
 static char nextc()
 {
     char c = lex_process->funtion->next_char(lex_process);
-    lex_process->pos.col += 1;
     if (c == '\n')
     {
         lex_process->pos.line += 1;
         lex_process->pos.col = 1;
+    }
+    else
+    {
+        lex_process->pos.col += 1;
     }
     return c;
 }
@@ -165,11 +168,54 @@ const char *read_str(char endlim)
     return buffer_ptr(buffer);
 }
 
+const char read_escaped_char(char c)
+{
+    char out = 0;
+    switch (c)
+    {
+    case 'n':
+        out = '\n';
+        break;
+    case 't':
+        out = '\t';
+        break;
+    case '\'':
+        out = '\'';
+        break;
+    case '\"':
+        out = '\"';
+        break;
+    case '\\':
+        out = '\\';
+        break;
+    case '0':
+        out = '\0';
+        break;
+    default:
+        compiler_error(lex_process->compiler, "invalid character received after escape character \\");
+        break;
+    }
+    return out;
+}
+
 const char read_char()
 {
     nextc();
     char c = nextc();
-    if (peekc() == EOF)
+    if (c == '\\')
+    {
+        c = nextc();
+        c = read_escaped_char(c);
+        if (peekc() == EOF)
+        {
+            compiler_error(lex_process->compiler, "expected a \' but reached end of file");
+        }
+        else if (peekc() != '\'')
+        {
+            compiler_error(lex_process->compiler, "expected a \' but instead received %c", peekc());
+        }
+    }
+    else if (peekc() == EOF)
     {
         compiler_error(lex_process->compiler, "expected a \' but reached end of file");
     }
@@ -178,6 +224,7 @@ const char read_char()
         compiler_error(lex_process->compiler, "expected a \' but instead received %c", peekc());
     }
     nextc();
+    printf("token_buffer:%c\n", c);
     return c;
 }
 
@@ -189,15 +236,31 @@ const char *read_operator()
     char op = nextc();
     buffer_write(buffer, op);
     char op1 = 0x00, op2 = 0x00;
+    int col1 = lex_process->pos.col;
+    int line1 = lex_process->pos.line;
+    int ccol1 = lex_process->compiler->pos.col;
+    int cline1 = lex_process->compiler->pos.line;
+    int col2 = lex_process->pos.col;
+    int line2 = lex_process->pos.line;
+    int ccol2 = lex_process->compiler->pos.col;
+    int cline2 = lex_process->compiler->pos.line;
     if (!operator_treated_as_one(op))
     {
         op1 = peekc();
+        col1 = lex_process->pos.col;
+        line1 = lex_process->pos.line;
+        ccol1 = lex_process->compiler->pos.col;
+        cline1 = lex_process->compiler->pos.line;
         if (is_single_operator(op1))
         {
             buffer_write(buffer, op1);
             nextc();
             single_operator = false;
             op2 = peekc();
+            col2 = lex_process->pos.col;
+            line2 = lex_process->pos.line;
+            ccol2 = lex_process->compiler->pos.col;
+            cline2 = lex_process->compiler->pos.line;
             if (op == '.' && op1 == '.' && op2 == '.')
             {
                 buffer_write(buffer, '.');
@@ -213,15 +276,23 @@ const char *read_operator()
     }
     if (!single_operator && !is_valid_op(operator))
     {
-        if (op2)
+        if (op2 != '\0' && is_single_operator(op2))
         {
             pushc(op2);
+            lex_process->pos.col = col2;
+            lex_process->pos.line = line2;
+            lex_process->compiler->pos.col = ccol2;
+            lex_process->compiler->pos.line = cline2;
             operator[2] = 0x00;
         }
-        if (!is_valid_op(operator))
+        if (!is_valid_op(operator) && is_single_operator(op1))
             if (op1)
             {
                 pushc(op1);
+                lex_process->pos.col = col1;
+                lex_process->pos.line = line1;
+                lex_process->compiler->pos.col = ccol1;
+                lex_process->compiler->pos.line = cline1;
                 operator[1] = 0x00;
             }
     }
@@ -267,6 +338,7 @@ struct token *make_token_symbol()
     {
         lex_finish_expression();
     }
+    printf("token_buffer:%c\n", c);
     return token_create(&(struct token){.type = TOKEN_TYPE_SYMBOL, .cval = c});
 }
 
@@ -421,6 +493,10 @@ struct token *read_next_token()
     {
         pushc(cnext);
         pushc(c);
+        lex_process->pos.col = col;
+        lex_process->pos.line = line;
+        lex_process->compiler->pos.col = ccol;
+        lex_process->compiler->pos.line = cline;
         return make_token_operator();
     }
     pushc(cnext);
@@ -456,8 +532,10 @@ struct token *read_next_token()
     case ' ':
     case '\t':
         token = handle_white_space();
+        break;
     case '\n':
         token = make_token_newline();
+        break;
     case EOF:
         break;
     default:
