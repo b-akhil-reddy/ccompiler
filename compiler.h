@@ -156,6 +156,8 @@ void *lex_process_private(struct lex_process *lprocess);
 struct vector *lex_process_tokens(struct lex_process *lprocess);
 int lex(struct lex_process *lprocess);
 
+struct lex_process *build_tokens_from_string(struct compile_process *compiler, const char *str);
+
 bool token_is_keyword(struct token *token, char *keyword);
 
 #endif

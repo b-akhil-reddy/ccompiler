@@ -3,7 +3,9 @@ INCLUDES= -I./
 
 all: clean ${OBJECTS}
 	gcc main.c ${INCLUDE} ${OBJECTS} -g -o ./main
+	gcc inline_lex_test.c ${INCLUDE} ${OBJECTS} -g -o ./inline_lex_test
 	./main
+	./inline_lex_test
 
 ./build/compiler.o: ./compiler.c
 	gcc ./compiler.c ${INCLUDES} -o ./build/compiler.o -g -c

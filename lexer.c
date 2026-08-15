@@ -597,6 +597,7 @@ struct token *read_next_token()
         token = make_token_newline();
         break;
     case EOF:
+    case '\0':
         break;
     default:
         if ((ISALPHA(c) || (c == '_')))
@@ -628,4 +629,44 @@ int lex(struct lex_process *lprocess)
         token = read_next_token();
     }
     return 0;
+}
+
+char lexer_string_buffer_next_char(struct lex_process *lprocess)
+{
+    struct buffer *buf = lex_process_private(lprocess);
+    return buffer_read(buf);
+}
+
+char lexer_string_buffer_peek_char(struct lex_process *lprocess)
+{
+    struct buffer *buf = lex_process_private(lprocess);
+    return buffer_peek(buf);
+}
+
+void lexer_string_buffer_push_char(struct lex_process *lprocess, char c)
+{
+    struct buffer *buf = lex_process_private(lprocess);
+    return buffer_unread(buf, c);
+}
+
+struct lex_process_functions lexer_string_buffer_functions = {
+    .next_char = lexer_string_buffer_next_char,
+    .peek_char = lexer_string_buffer_peek_char,
+    .push_char = lexer_string_buffer_push_char};
+
+struct lex_process *build_tokens_from_string(struct compile_process *compiler, const char *str)
+{
+    struct buffer *buffer = buffer_create();
+    buffer_printf(buffer, "%s", str);
+    buffer_write(buffer,0x00);
+    struct lex_process *lex_process = create_lex_process(compiler, &lexer_string_buffer_functions, buffer);
+    if (!lex_process)
+    {
+        return NULL;
+    }
+    if (lex(lex_process) != LEX_OK)
+    {
+        return NULL;
+    }
+    return lex_process;
 }

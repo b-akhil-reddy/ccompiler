@@ -26,5 +26,6 @@ void buffer_write(struct buffer *buffer, char c);
 void *buffer_ptr(struct buffer *buffer);
 void buffer_free(struct buffer *buffer);
 void buffer_pop(struct buffer *buffer);
+void buffer_unread(struct buffer *buffer, char c);
 
 #endif

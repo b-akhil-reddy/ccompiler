@@ -77,6 +77,15 @@ char buffer_read(struct buffer *buffer)
     return c;
 }
 
+void buffer_unread(struct buffer *buffer, char c)
+{
+    if (buffer->rindex > 0)
+    {
+        buffer->rindex--;
+        buffer->data[buffer->rindex] = c;
+    }
+}
+
 char buffer_peek(struct buffer *buffer)
 {
     if (buffer->rindex >= buffer->len)
